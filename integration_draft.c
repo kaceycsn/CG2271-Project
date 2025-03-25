@@ -36,10 +36,6 @@
 #define LJOYSTICK_UP 0x10
 #define LJOYSTICK_DOWN 0x09
 
-
- 
- 
-
  typedef enum {
   led_on,
   led_off
@@ -54,8 +50,9 @@ typedef struct {
 } Q_T;
 
 Q_T tx_q, rx_q;
-volatile uint8_t rx_IRQ_data = 0x00;
-
+//volatile uint8_t rx_IRQ_data = 0x00;
+volatile uint8_t rx_data[2] = {117, 122}; // initialize to neutral
+volatile uint8_t rx_index = 0;
 
 void Q_Init(Q_T *q) {
   unsigned int i;
@@ -89,7 +86,6 @@ unsigned char Q_Dequeue(Q_T *q) {
   q->SIZE--;
   return t;
 }
-
 
 void initLED(void) {
   //Enable CLock to PORTB and PORTD
@@ -155,7 +151,6 @@ void initUART2(uint32_t baud_rate) {
     UART2->C2 |= ((UART_C2_TE_MASK) | (UART_C2_RE_MASK)); //Enable TX and RX
 }
 
-
 void initMotorPWM(void) {
     // enable clock gating for PORTB
     SIM_SCGC5 |= SIM_SCGC5_PORTB_MASK;
@@ -211,8 +206,6 @@ void initMotorPWM(void) {
     TPM2_C1SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
     TPM2_C1SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
 }
-
- 
 
 void stopMotor() {
     TPM1->MOD = 0;
@@ -298,7 +291,9 @@ void UART2_IRQHandler(void) {
         if(Q_Full(&rx_q)) {
             while(1); // TODO: Handle error
         } else {
-            rx_IRQ_data = UART2->D;
+            uint8_t byte = UART2->D;
+	    rx_data[rx_index] = byte;
+            rx_index = (rx_index + 1) % 2; // Alternate between index 0 and 1
         }
   }
 
@@ -316,40 +311,41 @@ void UART2_IRQHandler(void) {
 volatile _Bool is_led_running = 0;
 
 void motor_thread(void *argument) {
-	for(;;) {
-		//offAllLed();
-    //stopMotor();
-    // left and right are both 4 bit numbers from 0 (UP) to 15 (DOWN)
-    // 7-8 is the idle position
-    uint8_t leftStick = (rx_IRQ_data >> 4);
-    uint8_t rightStick = rx_IRQ_data & 0x0F;
-
+    // Define neutral values and a dead zone threshold.
+    const uint8_t X_NEUTRAL = 117; // Joystick neutral for forward/back
+    const uint8_t Y_NEUTRAL = 122; // Joystick neutral for left/right (average of 122/123)
+    const uint8_t DEAD_ZONE = 20;  // Adjust as needed
     
-
-		
-		
-		if (rx_IRQ_data == R2) { // 0x01
-        rightTurn();
-    } else if (rx_IRQ_data == L2) { // 0x02
-        leftTurn();
-    } else if (rx_IRQ_data == RJOYSTICK_RIGHT) { // 0x06
-        rotateRight(4000);
-    } else if (rx_IRQ_data == RJOYSTICK_LEFT) {
-        rotateLeft(4000);
-    } else if (rx_IRQ_data == LJOYSTICK_UP) { // 0x04
-        forwardMotor(); //forward
-    } else if (rx_IRQ_data == LJOYSTICK_DOWN) {
-        reverseMotor(); //REVERSE
-    } else {
-        stopMotor();
+    uint8_t joyX, joyY;
+    
+    for(;;) {
+        // It’s a good idea to make local copies in case the IRQ updates rx_data.
+        joyX = rx_data[0];
+        joyY = rx_data[1];
+        
+        // Check forward/backward first (X axis)
+        if (joyX > (X_NEUTRAL + DEAD_ZONE)) {
+            // If pushed significantly to the right on the X axis, move forward.
+            forwardMotor();
+        } else if (joyX < (X_NEUTRAL - DEAD_ZONE)) {
+            // If pushed significantly to the left on the X axis, reverse.
+            reverseMotor();
+        }
+        // Otherwise, check left/right using the Y axis.
+        else if (joyY > (Y_NEUTRAL + DEAD_ZONE)) {
+            // If pushed significantly upward (or right depending on wiring), turn right.
+            rightTurn();
+        } else if (joyY < (Y_NEUTRAL - DEAD_ZONE)) {
+            // If pushed significantly downward (or left), turn left.
+            leftTurn();
+        } else {
+            // In the dead zone, stop the motors.
+            stopMotor();
+        }
+        
+        osDelay(10); // Short delay (10ms) to allow for a new reading
     }
-		
-				
-	}
-	
 }
-
-
 
 // ####################### START OF LED TASK ###########################
 
