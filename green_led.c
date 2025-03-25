@@ -8,6 +8,8 @@
 #define GREEN_LED_6 21 //PortE Pin 21
 #define GREEN_LED_7 22 //PortE Pin 22
 #define GREEN_LED_8 23 //PortE Pin 23
+#define GREEN_LED_9 29 //PortE Pin 29
+#define GREEN_LED_10 30 //PortE Pin 30
 #define MASK(x) (1 << (x))
 
 
@@ -44,10 +46,16 @@ void  InitGPIO(void) {
 	 
   PORTE->PCR[GREEN_LED_8] &= ~PORT_PCR_MUX_MASK; //clear 
   PORTE->PCR[GREEN_LED_8] |= PORT_PCR_MUX(1); //Assign output 
+
+  PORTE->PCR[GREEN_LED_9] &= ~PORT_PCR_MUX_MASK; //clear 
+  PORTE->PCR[GREEN_LED_9] |= PORT_PCR_MUX(1); //Assign output 
+	 
+  PORTE->PCR[GREEN_LED_10] &= ~PORT_PCR_MUX_MASK; //clear 
+  PORTE->PCR[GREEN_LED_10] |= PORT_PCR_MUX(1); //Assign output 
 	  
   //Set Data Direction Registers for PortB and PortD
-  PTE->PDDR |= (MASK(GREEN_LED_1) | MASK(GREEN_LED_2) | MASK(GREEN_LED_3) | MASK(GREEN_LED_4) |
-                MASK(GREEN_LED_5) | MASK(GREEN_LED_6) | MASK(GREEN_LED_7) | MASK(GREEN_LED_8)); 
+  PTE->PDDR |= (MASK(GREEN_LED_1) | MASK(GREEN_LED_2) | MASK(GREEN_LED_3) | MASK(GREEN_LED_4) | MASK(GREEN_LED_5) | 
+	        MASK(GREEN_LED_6) | MASK(GREEN_LED_7) | MASK(GREEN_LED_8) | MASK(GREEN_LED_9) | MASK(GREEN_LED_10)); 
 }
 
 /*Delay Function*/
@@ -60,14 +68,14 @@ static void delay(volatile uint32_t nof) {
 }
 
 void led_toggler(int colour_current) { //, int colour_previou
-	PTE->PCOR = (MASK(2)|MASK(3)|MASK(4)|MASK(5)|MASK(20)|MASK(21)|MASK(22)|MASK(23));
+	PTE->PCOR = (MASK(2)|MASK(3)|MASK(4)|MASK(5)|MASK(20)|MASK(21)|MASK(22)|MASK(23)|MASK(29)|MASK(30));
     //PTE->PCOR = MASK(colour_previous);
     PTE->PSOR = MASK(colour_current);
     delay(0xf0f0);
 }
 
 void ledAllOn() { //, int colour_previou
-	PTE->PSOR = (MASK(2)|MASK(3)|MASK(4)|MASK(5)|MASK(20)|MASK(21)|MASK(22)|MASK(23));
+	PTE->PSOR = (MASK(2)|MASK(3)|MASK(4)|MASK(5)|MASK(20)|MASK(21)|MASK(22)|MASK(23)MASK(29)|MASK(30));
     //delay();
 }
 
@@ -81,6 +89,10 @@ void ledToggleFromLeftToRight(){
         led_toggler(GREEN_LED_6);
         led_toggler(GREEN_LED_7);
         led_toggler(GREEN_LED_8);
+        led_toggler(GREEN_LED_9);
+        led_toggler(GREEN_LED_10);
+        led_toggler(GREEN_LED_10);
+        led_toggler(GREEN_LED_9);
         led_toggler(GREEN_LED_8);
         led_toggler(GREEN_LED_7);
         led_toggler(GREEN_LED_6);
