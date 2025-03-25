@@ -24,19 +24,17 @@ void delay_ms(uint32_t delay)
     SysTick->CTRL = 0; //Disable SysTick
 }
 
-#define PTB0_Pin 0
-#define PTB1_Pin 1
-#define PTE30_Pin 30 //TPM0_CH3
+#define PTC4_Pin 4 //TPM0_CH3
 			
 
 void initAudioPWM(void) {
 	
-	//Enables the clock gate for Port E
-	SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK;
+	//Enables the clock gate for Port C
+	SIM_SCGC5 |= SIM_SCGC5_PORTC_MASK;
 	
 	
-	PORTE->PCR[PTE30_Pin] &= ~PORT_PCR_MUX_MASK; //Clear bit 10 to 8
-	PORTE->PCR[PTE30_Pin] |= PORT_PCR_MUX(3); //Enable Timer function of pin
+	PORTE->PCR[PTC4_Pin] &= ~PORT_PCR_MUX_MASK; //Clear bit 10 to 8
+	PORTE->PCR[PTC4_Pin] |= PORT_PCR_MUX(4); //Enable Timer function of pin
 	
 	//Enables clock gate for TPM1, page 208
 	SIM->SCGC6 |= SIM_SCGC6_TPM0_MASK; 
